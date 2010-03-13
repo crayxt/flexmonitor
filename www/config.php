@@ -1,5 +1,5 @@
 <?php
-$app_title = "LicMonitor";
+$app_title = "Flexmonitor";
 $app_version  = "2.0";
 $lmutil_loc=dirname(__FILE__) . "\\lmutil.exe";
 $lmxendutil_loc=dirname(__FILE__) . "\\lmxendutil.exe";
