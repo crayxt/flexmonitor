@@ -1,0 +1,52 @@
+img{
+	border: none;
+}
+
+a:visited { color:#0000E0;}
+/*a:hover { font-weight:bold; color:#E00000; text-decoration:none }
+a:active { font-weight:bold; color:#E00000; text-decoration:underline }
+a:focus { font-weight:bold; color:#00E000; text-decoration:underline }
+*/
+th{
+	background: #dddddd;
+}
+
+td{
+	/*font-size: 14pt;*/
+	text-align: center;
+}
+
+td.already_expired{
+	background: #ffb0a0;
+}
+td.expires_soon{
+	background: #ffa0a0;
+}
+
+td.up{
+	background: lime;
+}
+
+td.down{
+	background: red;
+}
+
+a.version{
+	font-style: italic;
+}
+
+.error
+      {
+         padding   : 10px;
+         border    : 5px solid red;
+      }
+.warning
+      {
+         padding   : 10px;
+         border    : 5px solid yellow;
+      }
+.ok
+      {
+         padding   : 10px;
+         border    : 5px solid green;
+      }
