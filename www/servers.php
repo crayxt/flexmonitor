@@ -1,4 +1,5 @@
 <?php
+ini_set('max_execution_time', 0);
 include_once 'config.php';
 require_once 'includes/DB.php';
 require_once 'includes/licengine.php';
@@ -44,13 +45,14 @@ else
    print "<h1>" . $sitename . " - License Servers</h1>";?>
 <p>To get current usage for an individual server please click on the "Details" link next to the server.</p>
 <table border="1">
+    <tr>
     <th>License port@server</th>
     <th>Which licenses</th>
     <th>Status</th>
     <th>Current Usage</th>
     <th>Available features/license</th>
     <th>lmgrd version</th>
-    
+    </tr>
 <?php
 if($servers){
     foreach ($servers as $server) {
