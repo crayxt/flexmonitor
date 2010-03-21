@@ -1,9 +1,9 @@
 <?php
-$app_title = "Flexmonitor";
+$app_title = "Flexmonitor Dev";
 $app_version  = "2.0";
-$lmutil_loc=dirname(__FILE__) . "\\lmutil.exe";
-$lmxendutil_loc=dirname(__FILE__) . "\\lmxendutil.exe";
-$i4blt_loc="/opt/lum/ls/bin/i4blt";
+$lmutil_loc="C:\\Windows\\system32\\lmutil.exe";
+$lmxendutil_loc="C:\\Windows\\system32\\lmxendutil.exe";
+$i4blt_loc="C:\\IFOR\\WIN\\BIN\\i4blt.exe";
 $LUM_timeout=4;
 $lead_time=10;
 $disable_autorefresh=0;

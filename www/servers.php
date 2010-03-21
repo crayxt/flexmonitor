@@ -16,6 +16,9 @@ while ($row = mysql_fetch_array($recordset)) {
         case 'LMX':
             $lmutil = $lmxendutil_loc;
             break;
+        case 'LUM':
+            $lmutil = $i4blt_loc;
+            break;
         case 'FlexLM':
             $lmutil = $lmutil_loc;
             break;

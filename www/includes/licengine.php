@@ -4,6 +4,7 @@ class LicEngine {
 
     private $lmutil_loc = "";
     private $lmxendutil_loc = "";
+    private $i4blt_loc = "";
     private $color = Array("#ffffdd","#ff9966", "#ffffaa","#ccccff","#cccccc","#ffcc66","#99ff99","#eeeeee","#66ffff","#ccffff", "#ffff66", "#ffccff","#ff66ff", "yellow","lightgreen","lightblue");
     private static $instance = null;
 
@@ -29,6 +30,7 @@ class LicEngine {
         require 'config.php';
         $this->lmutil_loc = $lmutil_loc;
         $this->lmxendutil_loc = $lmxendutil_loc;
+        $this->i4blt_loc = $i4blt_loc;
      }
 
     public function build_license_expiration_array($server,$port,$type, &$expiration_array) {
@@ -133,6 +135,44 @@ class LicEngine {
             }
             pclose($file);
             break;
+        case 'LUM':
+            $file = popen($this->i4blt_loc . " -ll -n" . $server,"r");
+            # Let's read in the file line by line
+            while (!feof ($file)) {
+                $line = fgets ($file, 1024);
+                if ( eregi("Product Name:", $line)) {
+                    $licenseName = explode(":", trim($line));
+                    $line = fgets ($file, 1024);
+                    $licenseVersion = explode(":",trim($line));
+                    $feature = trim($licenseName[1]). '_' . trim($licenseVersion[1]);
+                    $line = fgets ($file, 1024);
+                    $line = fgets ($file, 1024);
+                    $numLicenses = explode(" ",trim($line));
+                    $line = fgets ($file, 1024);
+                    $line = fgets ($file, 1024);
+                    $line = fgets ($file, 1024);
+                    $line = fgets ($file, 1024);
+                    $ar = explode('Exp. Date:',$line);
+                    $expireDate = trim($ar[1]);
+                    $days_to_expiration = ceil ((1 + strtotime($expireDate) - $today) / 86400);
+                    ##############################################################################
+                    # If there is more than 4000 days = 10 years+ until expiration I will
+                    # consider the license to be permanent
+                    ##############################################################################
+                    if ( $days_to_expiration > 4000 ) {
+                        $expireDate = "permanent";
+                        $days_to_expiration = "permanent";
+                    }
+                    ##############################################################################
+                    # Add to the expiration array
+                    $expiration_array[$feature][] = array(
+                    "expiration_date" => $expireDate,
+                    "num_licenses" => $numLicenses[0],
+                    "days_to_expiration" => $days_to_expiration );
+                }
+            }
+            pclose($file);
+            break;
     }
     
    
@@ -158,6 +198,21 @@ class LicEngine {
                     break;
                 }
             }
+            # Close the pipe
+            pclose($fp);
+            break;
+            case "LUM":
+            $fp = popen($this->i4blt_loc . " -ls -n " . $server, "r");
+            while ( !feof ($fp) ) {
+                $line = fgets ($fp, 1024);
+                //Look for an expression like this ie. kalahari: license server UP (MASTER) v6.1
+                if ( eregi ($server, $line) ) {
+                    $line = fgets ($fp, 1024);
+                    return Array("UP","OK",'4.6.8');
+                    break;
+                }
+            }
+            return Array("DOWN","NA","unknown");
             # Close the pipe
             pclose($fp);
             break;
@@ -225,6 +280,33 @@ class LicEngine {
                 # Close the pipe
                 pclose($fp);
                 break;
+            case "LUM":
+            $fp = popen($this->i4blt_loc . " -lp -n " . $server, "r");
+                while ( !feof ($fp) ) {
+                    $line = fgets ($fp, 1024);
+                    # Look for features in the output. You will see stuff like
+                    # Users of Allegro_Viewer: (Total of 5 licenses available
+                    if ( eregi("Product Name", $line, $out ) ) {
+                        $product = explode(":", $line);
+                        $line = fgets ($fp, 1024);
+                        $version = explode(":", $line);
+                        $licenseName = trim($product[1]) . '_' . trim($version[1]);
+                        $line = fgets ($fp, 1024);
+                        $line = fgets ($fp, 1024);
+                        $line = fgets ($fp, 1024);
+                        $licenses=explode(":",$line);
+                        $templic[$licenseName]+=trim($licenses[1]);
+                    }
+
+                }
+                foreach ($templic as $feature => $number) {
+                    $licavailable[] = Array ($feature,$number);
+                }
+
+
+                # Close the pipe
+                pclose($fp);
+                break;
             case "FlexLM":
                 $fp = popen($this->lmutil_loc . " lmstat -a -c " . $port. "@" . $server, "r");
                 while ( !feof ($fp) ) {
@@ -261,6 +343,33 @@ class LicEngine {
                         $line = fgets ($fp, 1024);
                         $ar=explode(" ",$line);
                         $templic[$license[1]]+=$ar[0];
+                    }
+
+                }
+                foreach ($templic as $feature => $number) {
+                    $license_array[] = array ("feature" => FlexmonitorDB::getInstance($db)->get_featureid_by_name($feature),"licenses_used" => $number);
+                }
+
+
+                # Close the pipe
+                pclose($fp);
+                break;
+        case "LUM":
+            $fp = popen($this->i4blt_loc . " -s -lc -n " . $server, "r");
+                while ( !feof ($fp) ) {
+                    $line = fgets ($fp, 1024);
+                    # Look for features in the output. You will see stuff like
+                    # Users of Allegro_Viewer: (Total of 5 licenses available
+                    if ( eregi("Product Name", $line, $out ) ) {
+                        $product = explode(":", $line);
+                        $line = fgets ($fp, 1024);
+                        $version = explode(":", $line);
+                        $licenseName = trim($product[1]) . '_' . trim($version[1]);
+                        $line = fgets ($fp, 1024);
+                        $line = fgets ($fp, 1024);
+                        $line = fgets ($fp, 1024);
+                        $licenses=explode(":",$line);
+                        $templic[$licenseName]+=trim($licenses[1]);
                     }
 
                 }
@@ -343,7 +452,7 @@ class LicEngine {
         $table->display();
     }
 
-    public function get_feature_usage($license,$sitecode) {
+    public function get_feature_usage($license) {
     switch ($license['type']) {
         case "FlexLM":
             # Execute lmutil lmstat -A -c 27000@license or similar
@@ -408,7 +517,59 @@ class LicEngine {
                 if ($licensetemp["licenses_used"]==0) $i-=1;
             }
             break;
-        }
+        case "LUM":
+            # Execute lmutil lmstat -A -c 27000@license or similar
+            $fp = popen($this->i4blt_loc . " -s -lc -n " . $license['hostname'] , "r");
+            # Feature counter
+            $i = -1;
+
+            ################################################################################
+            # Loop through the output. Look for lines starting with Users. Then look for any
+            # consecutive entries showing who is using it
+            ################################################################################
+            while ( !feof ($fp) ) {
+                $line = fgets ($fp, 1024);
+                # Look for features in the output. You will see stuff like
+                # Users of Allegro_Viewer: (Total of 5 licenses available
+                if (preg_match('/(Product Name)/',$line)){
+                    $licenseName = explode(':',$line);
+                    $line = fgets ($fp, 1024);
+                    $licenseVersion = explode(':',$line);
+                    $feature = trim($licenseName[1]) . '_' . trim($licenseVersion[1]);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $line = fgets ($fp, 1024);
+                    $tempArray = split(' +',trim($line));
+                    if($tempArray[1]>0){
+                        $i++;
+                        $license_array[$i]["feature"] = $feature;
+                        $license_array[$i]["num_licenses"] = $tempArray[0];
+                        $license_array[$i]["licenses_used"] = $tempArray[1];
+                        $line = fgets ($fp, 1024);
+                        $line = fgets ($fp, 1024);
+                        $line = fgets ($fp, 1024);
+                        for($j=0;$j<$license_array[$i]["licenses_used"];$j++){
+                            $ar = split(' +', trim(fgets ($fp, 1024)));
+                            $userName = $ar[0] . ' ' . $ar[1];
+                            $ar = explode('In-Use Since:',fgets ($fp, 1024));
+                            $dateStart = 'In-Use Since: ' . trim($ar[1]);
+                            $ar = split(' +', trim(fgets ($fp, 1024)));
+                            $machine = $ar[0] . ' ' . $ar[1];
+                            $users[$i][] = $userName . ' ' . $machine . ' ' . $dateStart;
+                            $line = fgets ($fp, 1024);
+                            $line = fgets ($fp, 1024);
+                        }
+                    }
+                }
+            }
+            break;
+    }
 
 
 
@@ -455,6 +616,11 @@ class LicEngine {
                             break;
                         case 'LMX':
                             $line = explode(" Checkout time: ", $users[$j][$k]);
+                            # Convert the date and time ie 12/5 9:57 to UNIX time stamp
+                            $time_checkedout = strtotime ($line[1]);
+                            break;
+                        case 'LUM':
+                            $line = explode(" In-Use Since: ", $users[$j][$k]);
                             # Convert the date and time ie 12/5 9:57 to UNIX time stamp
                             $time_checkedout = strtotime ($line[1]);
                             break;

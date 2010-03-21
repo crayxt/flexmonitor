@@ -31,6 +31,9 @@ if ( $_GET['listing'] == 1 ) {
         case 'LMX':
             $lmutil = $lmxendutil_loc;
             break;
+        case 'LUM':
+            $lmutil = $i4blt_loc;
+            break;
     }
     LicEngine::getInstance($lmutil)->get_feature_list($license);
 
@@ -47,6 +50,9 @@ if ( $_GET['listing'] == 1 ) {
             break;
         case 'LMX':
             $lmutil = $lmxendutil_loc;
+            break;
+        case 'LUM':
+            $lmutil = $i4blt_loc;
             break;
     }
     LicEngine::getInstance($lmutil)->get_feature_usage($license);
