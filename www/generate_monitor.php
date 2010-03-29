@@ -67,19 +67,14 @@ switch($period){
         $graph->xaxis->SetLabelAngle(90);
         break;
 }
-for($i=0;$i<$xsize;$i++){
-            $tmptime = mktime(date('H',$startdate),date('i',$startdate)+$timeinterval*$i,date('s',$startdate),date('m',$startdate),date('d',$startdate)+$dateinterval*$i,date('Y',$startdate));
-            $licused[$tmptime] = "x";
-}
+
 $YMax = FlexmonitorDB::getInstance($db)->get_max_available_licenses($licid,$featureid);
 
 
 // Some data
 $recordset = FlexmonitorDB::getInstance($db)->get_licenses_usage($period,$featureid,date('Y-m-d',$date),$licid);
 while($used_licenses = mysql_fetch_array($recordset)){
-    $arDate = explode("-",$used_licenses['date']);
-    $arTime = explode(":",$used_licenses['time']);
-    $licdate = mktime($arTime[0],$arTime[1],$arTime[2],$arDate[1],$arDate[2],$arDate[0]);
+    $licdate = strtotime($used_licenses['date'] . '' . $used_licenses['time']);
     $licused[$licdate]= $used_licenses['users'];
 }
 foreach ($licused as $xvalue => $yvalue) {
