@@ -1,4 +1,5 @@
 <?php
+ini_set('max_execution_time', 0);
 class FlexmonitorDB {
   // single instance of self shared among all instances
     private static $instance = null;
@@ -69,7 +70,7 @@ class FlexmonitorDB {
 
     public function get_licenses_by_product($name) {
         $name = mysql_real_escape_string($name);
-        return mysql_query("select licenses.id,hostname,port,products.name,type,sites.Name from licenses,ports,products,servers,types,sites where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid=products.id and licenses.typeid=types.id and licenses.siteid = sites.id and products.name=" . $name . "'");
+        return mysql_query("select licenses.id,hostname,port,products.name,type,sites.Name from licenses,ports,products,servers,types,sites where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid=products.id and licenses.typeid=types.id and licenses.siteid = sites.id and products.name= '" . $name . "'");
     }
 
     public function get_licenses_by_server_site($server,$port,$site) {
