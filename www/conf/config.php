@@ -16,7 +16,7 @@ $lmutil['i4blt_loc'] = 'C:\\IFOR\\WIN\\BIN\\i4blt.exe';
 /*
  * Database configuration
  */
-$db['hostname'] = 'vss-cre-s0005';
+$db['hostname'] = 'localhost';
 $db['username'] = 'license';
 $db['password'] = 'license';
 $db['database'] = 'licenses';
