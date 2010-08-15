@@ -43,18 +43,23 @@ Class template {
     }
 
     function show($name) {
+        $header = __SITE_PATH . '/views/site_header.php';
+        $footer = __SITE_PATH . '/views/site_footer.php';
         $path = __SITE_PATH . '/views' . '/' . $name . '.php';
         if (file_exists($path) == false)
         {
                 throw new Exception('Template not found in '. $path);
                 return false;
         }
+        $this->config = $this->registry->config;
         // Load variables
         foreach ($this->vars as $key => $value)
         {
                 $$key = $value;
         }
+        include ($header);
         include ($path);
+        include ($footer);
     }
 
 

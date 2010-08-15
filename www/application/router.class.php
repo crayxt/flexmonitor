@@ -9,7 +9,7 @@ class router {
     * @the controller path
     */
     private $path;
-    private $args = array();
+    public $args = array();
     public $file;
     public $controller;
     public $action;
@@ -71,7 +71,7 @@ class router {
             $action = $this->action;
         }
         /*** run the action ***/
-        $controller->$action();
+        $controller->$action($this->args);
     }
 
     /**
@@ -86,7 +86,7 @@ class router {
     private function getController() {
     /*** get the route from the url ***/
         $route = (empty($_GET['rt'])) ? '' : $_GET['rt'];
-
+        
         if (empty($route))
         {
                 $route = 'index';
@@ -96,9 +96,15 @@ class router {
                 /*** get the parts of the route ***/
                 $parts = explode('/', $route);
                 $this->controller = $parts[0];
-                if(isset( $parts[1]))
+                array_shift($parts);
+                if(isset( $parts[0]))
                 {
-                        $this->action = $parts[1];
+                        $this->action = $parts[0];
+                        array_shift($parts);
+                        if(is_array($parts))
+                        {
+                            $this->args = $parts;
+                        }
                 }
         }
 
