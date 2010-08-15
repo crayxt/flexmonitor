@@ -123,7 +123,7 @@ class DB {
 
 
     public function get_licenses_by_site_id($id) {
-        return  mysql_query("select licenses.id,hostname,port,name,type from licenses,servers,ports,products,types where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid = products.id and licenses.typeid = types.id and siteid='" . $id . "'");
+        return  mysql_query("select licenses.id,hostname,port,name,type from licenses,servers,ports,products,types where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid = products.id and licenses.typeid = types.id and siteid='" . $id . "' order by name");
     }
 
     public function get_licenses() {
@@ -142,7 +142,7 @@ class DB {
     }
 
     public function get_features_by_licid($id) {
-        return mysql_query("select distinct(features.id),features.name,num_licenses from licenses_available,features where features.id=licenses_available.featureid and licid=".$id);
+        return mysql_query("select distinct(features.id),features.name from licenses_available,features where features.id=licenses_available.featureid and licid=".$id." order by features.name");
     }
 
     public function get_featureid_by_name($name) {
@@ -176,26 +176,26 @@ class DB {
         switch($period){
             case 'day':
                 $tmpDate = date('Y-m-d',mktime(0,0,0,$arDate[1],$arDate[2],$arDate[0]));
-                return mysql_query("select users,date,time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date <='" . $date . "' and date >='" . $tmpDate . "'");
+                return mysql_query("select users,date,time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date between '" . $tmpDate . "' and '" . $date . "'");
                 break;
             case 'week':
                 $tmpDate = mktime(0,0,0,$arDate[1],$arDate[2],$arDate[0]);
                 $dayofweek = date('w',$tmpDate);
                 $startDate = date('Y-m-d',mktime(0,0,0,date('m',$tmpDate),date('d',$tmpDate)-$dayofweek,date('Y',$tmpDate)));
                 $endDate = date('Y-m-d',mktime(0,0,0,date('m',$tmpDate),date('d',$tmpDate)+7-$dayofweek,date('Y',$tmpDate)));
-                return mysql_query("select users,date,time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date <='" . $endDate . "' and date >='" . $startDate . "'");
+                return mysql_query("select users,date,time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date between '" . $startDate . "' and '" . $endDate . "'");
                 break;
             case 'month':
                 $tmpDate = mktime(0,0,0,$arDate[1],$arDate[2],$arDate[0]);
                 $startDate = date('Y-m-d',mktime(0,0,0,date('m',$tmpDate),1,date('Y',$tmpDate)));
                 $endDate = date('Y-m-d',mktime(0,0,0,date('m',$tmpDate)+1,0,date('Y',$tmpDate)));
-                return mysql_query("select max(users) as users,date,'00:00:00' as time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date <='" . $endDate . "' and date >='" . $startDate . "' group by date");
+                return mysql_query("select max(users) as users,date,'00:00:00' as time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date between '" . $startDate . "' and '" . $endDate . "' group by date");
                 break;
             case 'year':
                 $tmpDate = mktime(0,0,0,$arDate[1],$arDate[2],$arDate[0]);
                 $startDate = date('Y-m-d',mktime(0,0,0,1,1,date('Y',$tmpDate)));
                 $endDate = date('Y-m-d',mktime(0,0,0,1,0,date('Y',$tmpDate)+1));
-                return mysql_query("select max(users) as users,date,time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date <='" . $endDate . "' and date >='" . $startDate . "' group by date");
+                return mysql_query("select max(users) as users,date,time from licenses_usage where featureid= " . $featureid . " and licid= " . $licid . " and date between '" . $startDate . "' and '" . $endDate . "' group by date");
                 break;
         }
         
@@ -280,18 +280,26 @@ class DB {
         return mysql_query($sql);
     }
 
-    public function insert_available_licenses($date,$feature,$lic_number,$licid) {
-        $feature = mysql_real_escape_string($feature);
-        $featureid = $this->get_featureid_by_name($feature);
-        if(!$featureid){
-            mysql_query("INSERT INTO features (name) VALUES ('" . $feature. "')");
-            $featureid = mysql_insert_id();
+    public function insert_used_licenses($features_array)
+    {
+        $avail_query_string = "INSERT INTO licenses_available (date,featureid,num_licenses,licid) VALUES ";
+        $used_query_string = "INSERT INTO licenses_usage (featureid,date,time,users,licid) VALUES ";
+        foreach($features_array as $feature_array)
+        {
+            $feature = mysql_real_escape_string($feature_array['feature']);
+            $featureid = $this->get_featureid_by_name($feature);
+            if(!$featureid){
+                mysql_query("INSERT INTO features (name) VALUES ('" . $feature. "')");
+                $featureid = mysql_insert_id();
+            }
+            $datas_avail[] = " ('" . date('Y-m-d') . "'," . $featureid . "," . $feature_array['num_licenses'] . "," . $feature_array['licid'] . ")";
+            $datas_used[] = "(".$featureid.",'".date('Y-m-d')."','".date('H:i:s')."',".$feature_array['licenses_used'].",".$feature_array['licid'] .")";
         }
-        mysql_query("insert into licenses_available (date,featureid,num_licenses,licid) values ('".$date."',".$featureid.",".$lic_number.",".$licid.")");
-    }
-
-    public function insert_used_licenses($featureid,$date,$time,$licenses_used,$licid) {
-        mysql_query("insert into licenses_usage (featureid,date,time,users,licid) values (".$featureid.",'".$date."','".$time."',".$licenses_used.",".$licid.")");
+        $avail_query_string .= implode(",",$datas_avail);
+        $used_query_string .= implode(",",$datas_used);
+        $avail_query_string .= " ON DUPLICATE KEY UPDATE num_licenses=VALUES(num_licenses)";
+        mysql_query($avail_query_string);
+        mysql_query($used_query_string);
     }
 
     public function create_site ($name){
