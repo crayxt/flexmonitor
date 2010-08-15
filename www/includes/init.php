@@ -13,7 +13,7 @@
  include __SITE_PATH . '/application/' . 'template.class.php';
 
  /*** include config file ***/
-include __SITE_PATH . '/config.php';
+include __SITE_PATH . '/conf/' . 'config.php';
 
  /*** auto load model classes ***/
  function __autoload($class_name) {
@@ -31,6 +31,9 @@ include __SITE_PATH . '/config.php';
  $registry = new registry;
 
  /*** create the database registry object ***/
+ $registry->config = $config;
+ $registry->lmutil = $lmutil;
  $registry->dbinfo = $db;
  $registry->db = DB::getInstance($registry);
+ $registry->licengine = LicEngine::getInstance($registry);
 ?>

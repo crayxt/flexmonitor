@@ -2,6 +2,8 @@
 /*** error reporting on ***/
 error_reporting(E_ALL);
 
+ini_set('max_execution_time', 0);
+
 /*** define the site path constant ***/
 $site_path = realpath(dirname(__FILE__));
 
