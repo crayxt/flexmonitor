@@ -9,23 +9,34 @@ class monitorController extends baseController {
     public function display($args)
     {
         $licenses = array();
-        $recordset = $this->registry->db->get_licenses_by_site_id($args[0]);
-        while ($row = mysql_fetch_array($recordset)) {
-            $result = $this->registry->db->get_features_by_licid($row[0]);
+        $recordset = $this->registry->db->get_features_by_siteid($args[0]);
+        if (mysql_num_rows($recordset) > 0)
+        {
+            $tmplic = false;
+            $lastlic = FALSE;
             $features = array();
-            while($row2 = mysql_fetch_array($result))
-            {
-                $features[] = array('featureid' => $row2[0],'featurename' => $row2[1]);
+            while ($row = mysql_fetch_array($recordset)) {
+                $tmplic = $row[0];
+                $tmpprod = $row[1];
+                if(($tmplic!=$lastlic) && ($lastlic)){
+                    $licenses[] = array(
+                        'licid'=>$lastlic,
+                        'product'=>$lastprod,
+                        'features'=>$features,
+                    );
+                    unset($features);
+                }
+                $features[] = array('featureid' => $row[2],'featurename' => $row[3]);
+                $lastlic = $tmplic;
+                $lastprod = $tmpprod;
             }
-            $licenses[] = Array('licid'=>$row[0],
-                'hostname'=>$row[1],
-                'port'=>$row[2],
-                'product'=>$row[3],
-                'features'=>$features);
-            unset($features);
+            $licenses[] = array(
+                        'licid'=>$lastlic,
+                        'product'=>$lastprod,
+                        'features'=>$features,
+                );
         }
         $sitename = $this->registry->db->get_site_name_by_id($args[0]);
-
 
         $this->registry->template->licenses = $licenses;
         $this->registry->template->siteid = $args[0];

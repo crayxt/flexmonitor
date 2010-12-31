@@ -1,4 +1,4 @@
-<a href="<?php echo $config['base_url']?>admin">Admin</a>|<a href="<?php echo $config['base_url']?>report">Reports</a><br>
+<a href="<?php echo $config['base_url']?>report">Reports</a>
 <h1>Sites under monitoring </h1>
 <table border="1">
     <?php

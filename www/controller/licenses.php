@@ -2,73 +2,63 @@
 class licensesController extends baseController {
 
     public function index() {
-        header('Location: ' . $this->registry->config['base_url']);
-    }
-
-    public function insert()
-    {
-        //find licenses
-        $init = microtime(true);
-        $start = $init;
+        $log = fopen(__SITE_PATH . $this->registry->config['logfile'],'w');
+        fwrite($log,date('r') . ": Start\r\n");
+        fclose($log);
         $recordset = $this->registry->db->get_licenses();
-        while($license = mysql_fetch_assoc($recordset)){
+        while($license = mysql_fetch_array($recordset)){
             $lic_array[] = $license;
         }
-        $now = microtime(true);
-        $duration = $now - $init;
-        echo 'fetch licenses took: ' . $duration . ' s<br>';
-        $init = $now;
-        $this->registry->licengine->getfiles($lic_array);
-        $now = microtime(true);
-        $duration = $now - $init;
-        echo 'get files took: ' . $duration . ' s<br>';
-        $init = $now;
         foreach($lic_array as $license)
         {
-            $licenses[] = $this->registry->licengine->loadlicenseinfo($license);
+            $this->insert($license);
         }
-        $now = microtime(true);
-        $duration = $now - $init;
-        echo 'build licenses array took: ' . $duration . ' s<br>';
-        $init = $now;
-        foreach($licenses as $licinfo)
-        {
-            foreach($licinfo['lic_array'] as $feature=>$lic_array)
-            {
-                $features_array[] = array('feature'=>$feature,
-                    'licid'=>$licinfo['license']['id'],
-                    'num_licenses'=>$lic_array['num_licenses'],
-                    'licenses_used'=>$lic_array['licenses_used'],
-                    );
-            }
-        }
-        $now = microtime(true);
-        $duration = $now - $init;
-        echo 'create feature_array took : ' . $duration . ' s<br>';
-        $init = $now;
-        $this->registry->db->insert_used_licenses($features_array);
-        $now = microtime(true);
-        $duration = $now - $init;
-        echo 'insert licenses in Db took: ' . $duration . ' s<br>';
-        $init = $now;
-        /*$this->generateimages($features_array);
-        $now = time();
-        $duration = $now - $init;
-        echo 'generate images took: ' . $duration . ' s<br>';*/
-        $duration = $now - $start;
-        echo 'script total duration : ' . $duration . ' s<br>';
+        $log = fopen(__SITE_PATH . $this->registry->config['logfile'],'a');
+        fwrite($log,date('r') . ": End\r\n");
+        fclose($log);
+
     }
 
-    private function generateimages($features_array)
+    public function insert($args)
     {
-        foreach($features_array as $feature_array)
+        $log = fopen(__SITE_PATH . $this->registry->config['logfile'],'a');
+        fwrite($log,date('r') . ":**********************************************\r\n");
+        $license = array('id'=>$args[0],
+                'hostname'=>$args[1],
+                'port'=>$args[2],
+                'name'=>$args[3],
+                'type'=>$args[4]);
+        
+        fwrite($log,date('r') . ": " . implode('-',$license) . "\r\n");
+        $status = $this->registry->licengine->getfile($license);
+        fwrite($log,date('r') . ": License files uploaded with status $status.\r\n");
+        if($status==0)
         {
-            $featureid = $this->registry->db->get_featureid_by_name($feature_array['feature']);
-            $this->image(array($feature_array['licid'],$featureid,'day'));
-            $this->image(array($feature_array['licid'],$featureid,'week'));
-            $this->image(array($feature_array['licid'],$featureid,'month'));
-            $this->image(array($feature_array['licid'],$featureid,'year'));
+            $licinfo = $this->registry->licengine->loadlicenseinfo($license);
+            if($licinfo['status']['class']=='DOWN')
+            {
+                fwrite($log,date('r') . ": No license info !!!!!!!!!!!!\r\n");
+            }else{
+                fwrite($log,date('r') . ": License info array built.\r\n");
+                fwrite($log,date('r') . ":----------------------------------------------\r\n");
+                $features_array = array();
+                foreach($licinfo['lic_array'] as $feature=>$lic_array)
+                {
+                    $ar = array('feature'=>$feature,
+                        'licid'=>$licinfo['license']['id'],
+                        'num_licenses'=>$lic_array['num_licenses'],
+                        'licenses_used'=>$lic_array['licenses_used'],
+                        );
+                    fwrite($log,date('r') . ": " . implode(':',$ar) . "\r\n");
+                    $features_array[] = $ar;
+                }
+                fwrite($log,date('r') . ":----------------------------------------------\r\n");
+            
+            $status = $this->registry->db->insert_used_licenses($features_array);
+            fwrite($log,date('r') . ": Features inserted with status $status.\r\n");
+            }
         }
+        fclose($log);
     }
 
     public function image($args)
@@ -83,8 +73,27 @@ class licensesController extends baseController {
         $licid = $args[0];
         $period = $args[2];
         $feature = $this->registry->db->get_feature_name_byid($featureid);
-        $YMax = $this->registry->db->get_max_available_licenses($licid,$featureid);
+        $YMax = 0;
+        $YMax = $this->registry->db->get_max_available_licenses($period,$featureid,date('Y-m-d'),$licid);
         // Some data
+        $licavail = array();
+        $xavaildata = array();
+        $yavaildata = array();
+        $recordset = $this->registry->db->get_licenses_available($period,$featureid,date('Y-m-d'),$licid);
+        while($avail_licenses = mysql_fetch_array($recordset)){
+            $licdate = strtotime($avail_licenses['date']);
+            $licavail[$licdate]= $avail_licenses['num_licenses'];
+        }
+        foreach ($licavail as $xvalue => $yvalue) {
+            $xavaildata[] = $xvalue;
+            $yavaildata[]  = $yvalue;
+        }
+        if(empty($yavaildata))
+        {
+            $xavaildata[0] = time();
+            $yavaildata[0] = 0;
+        }
+
         $licused = array();
         $xdata = array();
         $ydata = array();
@@ -163,18 +172,47 @@ class licensesController extends baseController {
         $lineplot =new LinePlot($ydata,$xdata);
         $lineplot ->SetColor("blue");
         $lineplot->SetFillColor("lightcyan2:1.3@0.4");
-        $sline  = new PlotLine (HORIZONTAL,$YMax, "red",2);
         $graph->Add( $lineplot);
-        $graph->Add( $sline);
-
-        // Display the graph
-        /*$filename = __SITE_PATH . '/images/graphs/' . $licid . '-' . $featureid . '-' . $period . '.png';
-        if (file_exists($filename))
+        if($period == 'day')
         {
-           unlink($filename);
+            $sline  = new PlotLine (HORIZONTAL,$yavaildata[0], "red",2);
+            $graph->Add($sline);
+        }else{
+            $availlineplot =new LinePlot($yavaildata,$xavaildata);
+            $availlineplot ->SetColor("red");
+            $availlineplot->SetWeight(2);
+            $graph->Add( $availlineplot);
         }
-        $graph->Stroke($filename);*/
         $graph->Stroke();
+    }
+
+    private function cleanData(&$str)
+    {
+        $str = preg_replace("/\t/", "\\t", $str);
+        $str = preg_replace("/\r?\n/", "\\n", $str);
+        if(strstr($str, '"')) $str = '"' . str_replace('"', '""', $str) . '"';
+    }
+
+    public function export($args)
+    {
+        $licenses = $args[0];
+        $featureid = $args[1];
+        //filename for download
+        $filename = $this->registry->db->get_feature_name_byid($featureid) . date('Ymd') . ".xls";
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        header("Content-Type: application/vnd.ms-excel");
+        $flag = false;
+        $result = $this->registry->db->get_export_data($featureid,$licenses);
+        while($row = mysql_fetch_assoc($result))
+            {
+            if(!$flag) { # display field/column names as first row
+                echo implode("\t", array_keys($row)) . "\n";
+                $flag = true;
+            }
+            array_walk($row, array($this,'cleanData'));
+            echo implode("\t", array_values($row)) . "\n";
+            }
+        exit;
     }
 }
 ?>

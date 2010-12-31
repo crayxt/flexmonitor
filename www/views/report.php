@@ -1,15 +1,48 @@
-<form action="#">
-    <fieldset class="scroll_checkboxes">
-        <legend>Site</legend>
-        <input type="checkbox" name="site1">site 1<br>
-        <input type="checkbox" name="site1">site 2<br>
-        <input type="checkbox" name="site1">site 3<br>
-        <input type="checkbox" name="site1">site 4<br>
-        <input type="checkbox" name="site1">site 5<br>
-        <input type="checkbox" name="site1">site 6<br>
-        <input type="checkbox" name="site1">site 7<br>
-        <input type="checkbox" name="site1">site 8<br>
-        <input type="checkbox" name="site1">site 9<br>
+<?php
+if($launch){
+    $url = $config['base_url'] . 'report/display/';
+?>
+<form name="report" action="<?php echo $url?>" method="post">
+    <h1>2. Choose The Sites</h1>
+    <h2>Available Sites for <?php echo $featurename?></h2>
+<?php
+    if(!empty($sites))
+    {
+        ?>
+    <input type="hidden" name="id" value="<?php echo $featureid?>">
+    <fieldset>
+        <legend>Sites</legend>
+        <?php
+        foreach($sites as $site)
+        {
+            ?><input type="checkbox" name="sites[]" value="<?php echo $site['id']?>"><?php echo $site['name']?><br/><?php
+        }
+        ?>
     </fieldset>
-    <input type="submit" value="Run">
+    <input type="submit" value="Run"><a href="<?php echo $config['base_url']?>report">Back</a><br />
 </form>
+        <?php
+    }
+}else{
+    $url = $config['base_url'] . 'report/';
+    ?>
+<h1>1. Choose the Feature</h1>
+<form name="report" action="<?php echo $url?>" method="post">
+    <select name="id">
+    <?php
+    foreach ($features as $feature) {
+        if($feature['id']==$featureid){
+            ?>
+        <option selected value="<?php echo $feature['id']?>"><?php echo $feature['name']?></option>
+        <?php
+        }else{?>
+        <option value="<?php echo $feature['id']?>"><?php echo $feature['name']?></option>
+    <?php
+        }
+    }
+    ?>
+    </select>
+    <input type="submit" value="Next"><br />
+    </form>
+<?php
+}?>

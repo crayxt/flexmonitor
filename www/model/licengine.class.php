@@ -40,38 +40,44 @@ class LicEngine {
         return $full_hours . 'h, ' . $full_minutes . '\', ' . $full_seconds . '\'\' ';
     }
 
-    private function execInBackground($cmd)
-    {
-        if (substr(php_uname(), 0, 7) == "Windows"){
-            pclose(popen("start /B ". $cmd, "r"));
-        }else{
-            exec($cmd . " > /dev/null &");
-        }
-    }
-
-    private  function getfilename()
-    {
-        $filename = md5(uniqid(rand(), true)) . '.txt';
-        return $filename;
-    }
-
     public function getfile($license)
     {
-        $filename = $this->getfilename();
         switch ($license['type'])
         {
             case 'FlexLM':
-                popen($this->lmutil_loc . " lmcksum -c " . $license['port'] . "@" . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.expire.txt','r');
-                popen($this->lmutil_loc . " lmstat -A -c " . $license['port'] . "@" . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt','r');
+                if(file_exists($this->lmutil_loc))
+                {
+                    if($fp = @fsockopen($license['hostname'], $license['port'], $errno, $errstr, 3))
+                    {
+                        popen($this->lmutil_loc . " lmcksum -c " . $license['port'] . "@" . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.expire.txt','r');
+                        popen($this->lmutil_loc . " lmstat -a -c " . $license['port'] . "@" . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt','r');
+                        fclose($fp);
+                    }else return 1;
+                }else return 1;
                 break;
             case 'LMX':
-                popen($this->lmxendutil_loc . " -licstat -host " . $license['hostname'] . " -port " . $license['port'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt','r');
+                if(file_exists($this->lmxendutil_loc))
+                {
+                    if($fp = @fsockopen($license['hostname'], $license['port'], $errno, $errstr, 3))
+                    {
+                        popen($this->lmxendutil_loc . " -licstat -host " . $license['hostname'] . " -port " . $license['port'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt','r');
+                        fclose($fp);
+                    }else return 1;
+                }else return 1;
                 break;
             case 'LUM':
-                popen($this->i4blt_loc . " -ll -n " . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.expire.txt','r');
-                popen($this->i4blt_loc . " -s -lc -n " . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt','r');
+                if(file_exists($this->i4blt_loc))
+                {
+                    if($fp = @fsockopen('udp://' . $license['hostname'], $license['port'], $errno, $errstr, 3))
+                    {
+                        popen($this->i4blt_loc . " -ll -n " . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.expire.txt','r');
+                        popen($this->i4blt_loc . " -s -lc -n " . $license['hostname'] . " > " . __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt','r');
+                        fclose($fp);
+                    }else return 1;
+                }else return 1;
                 break;
         }
+        return 0;
     }
 
     public function getfiles($licenses)
@@ -92,9 +98,13 @@ class LicEngine {
         {
             $this->getfile($license);
         }
+        else{
         $fp = fopen($filename, 'r');
+        if($fp)
+        {
         while ( !feof ($fp) ) {
             $line = fgets ($fp, 1024);
+            if(preg_match('/Server ip:' . $license['hostname'] . '  not found/',$line)) return $luminfo;
             if ( eregi("Product Name:", $line)) {
                         $licenseName = explode(":", trim($line));
                         $line = fgets ($fp, 1024);
@@ -133,14 +143,20 @@ class LicEngine {
                     }
         }  
         pclose($fp);
+        }
+        }
         $filename = __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt';
         if(!file_exists($filename))
         {
             $this->getfile($license);
         }
+        else{
         $fp = fopen($filename , 'r');
+        if($fp)
+        {
         while ( !feof ($fp) ) {
             $line = fgets ($fp, 1024);
+            if(preg_match('/Server ip:' . $license['hostname'] . '  not found/',$line)) return $luminfo;
             if (preg_match('/(Product Name)/',$line)){
                 $licenseName = explode(':',$line);
                 $line = fgets ($fp, 1024);
@@ -182,6 +198,8 @@ class LicEngine {
             }
         }
         pclose($fp);
+        }
+        }
         return $luminfo;
     }
 
@@ -196,6 +214,8 @@ class LicEngine {
             $this->getfile($license);
         }
         $fp = fopen($filename , 'r');
+        if($fp)
+        {
         $i = -1;
         while ( !feof ($fp) ) {
             $line = fgets ($fp, 1024);
@@ -226,7 +246,7 @@ class LicEngine {
                 }
                 $lmxinfo['lic_array'][$feature]['date_expire'] = $expiration_date;
                 $lmxinfo['lic_array'][$feature]['days_expire'] = $days_to_expiration;
-                $line = fgets ($fp, 1024);
+                if($days_to_expiration!='expired')$line = fgets ($fp, 1024);
                 $line = fgets ($fp, 1024);
                 $line = fgets ($fp, 1024);
                 $ar=explode(" ",$line);
@@ -254,6 +274,7 @@ class LicEngine {
             }
         }
         pclose($fp);
+        }
         return $lmxinfo;
     }
 
@@ -267,9 +288,13 @@ class LicEngine {
         {
             $this->getfile($license);
         }
+        else{
         $file = fopen($filename , 'r');
+        if($file)
+        {
         while (!feof ($file)) {
             $line = fgets ($file, 1024);
+            if (preg_match('/Cannot connect to license server system./',$line)|| preg_match('/License server machine is down or not responding./',$line)) return $flexlminfo;
             if ( preg_match('/INCREMENT .*/', $line, $out) || preg_match('/FEATURE .*/', $line, $out) ) {
                 $ar = explode(" ", $out[0]);
                 $feature = $ar[1];
@@ -309,14 +334,20 @@ class LicEngine {
             }
         }
         pclose($file);
+        }
+        }
         $filename = __SITE_PATH . '/tmp/' . $license['port'] . '@' . $license['hostname'] . '.txt';
         if(!file_exists($filename))
         {
             $this->getfile($license);
         }
+        else{
         $fp = fopen($filename, 'r');
+        if($fp)
+        {
         while ( !feof ($fp) ) {
             $line = fgets ($fp, 1024);
+            if (preg_match('/Cannot connect to license server system./',$line)|| preg_match('/License server machine is down or not responding./',$line)) return $flexlminfo;
             if ( preg_match('/: license server UP/', $line) ) {
                 $flexlminfo['status'] =  Array('class'=>'UP','status'=>'OK','version'=>eregi_replace(".*license server UP .*v", "v", $line));
             }
@@ -352,6 +383,8 @@ class LicEngine {
             }
         }
         pclose($fp);
+        }
+        }
         return $flexlminfo;
     }
 
