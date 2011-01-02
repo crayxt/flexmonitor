@@ -25,9 +25,9 @@ class LicEngine {
     }
     // private constructor
     private function __construct($arg) {
-        $this->lmutil_loc = $arg->lmutil['lmutil_loc'];
-        $this->lmxendutil_loc = $arg->lmutil['lmxendutil_loc'];
-        $this->i4blt_loc = $arg->lmutil['i4blt_loc'];
+            $this->lmutil_loc = $arg->lmutil['lmutil_loc'];
+            $this->lmxendutil_loc = $arg->lmutil['lmxendutil_loc'];
+            $this->i4blt_loc = $arg->lmutil['i4blt_loc'];
      }
 
 

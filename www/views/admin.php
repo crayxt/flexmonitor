@@ -12,4 +12,3 @@ foreach($result as $siteid=>$name){?>
 }
 ?>
 </table>
-<a href="<?php echo $config['base_url']?>licenses/insert">Licenses used</a><br>

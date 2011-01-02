@@ -2,9 +2,9 @@
 /*
  * Basic config
  */
-$config['base_url'] = 'http://flexmonitor/';
+$config['base_url'] = 'http://www.mysite.com/';
 $config['app_title'] = 'Flexmonitor';
-$config['app_version']  = '2.0';
+$config['app_version']  = '3.0';
 $config['logfile'] = '/logs/flexmonitor.log';
 
 /*
@@ -22,16 +22,4 @@ $db['username'] = 'license';
 $db['password'] = 'license';
 $db['database'] = 'licenses';
 
-/*
- * Miscellaneous
- */
-$LUM_timeout=4;
-$lead_time=10;
-$disable_autorefresh=0;
-$collection_interval=15;
-$colors="#ffffdd,#ff9966, #ffffaa,#ccccff,#cccccc,#ffcc66,#99ff99,#eeeeee,#66ffff,#ccffff, #ffff66, #ffccff,#ff66ff, yellow,lightgreen,lightblue";
-$smallgraph="300,200";
-$largegraph="600,300";
-$legendpoints="";
-$xlegendpoints = 12;
 ?>

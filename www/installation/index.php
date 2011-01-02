@@ -9,11 +9,6 @@ $site_path = realpath(dirname(__FILE__));
 
 define ('__SITE_PATH', $site_path);
 
-if(!file_exists(__SITE_PATH . '/conf/config.php'))
-{
-    header('Location: installation/index.php');
-}
-
 //include the init.php file
 include 'includes/init.php';
 

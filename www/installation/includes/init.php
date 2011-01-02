@@ -12,7 +12,8 @@
  /*** include the template class ***/
  include __SITE_PATH . '/application/' . 'template.class.php';
 
-
+/*** include helper file ***/
+include __SITE_PATH . '/includes/' . 'helper.php';
 
  /*** auto load model classes ***/
  function __autoload($class_name) {
@@ -30,16 +31,11 @@
  $registry = new registry;
 
 /*** include config file ***/
-$conf_file = __SITE_PATH . '/conf/config.php';
-if(file_exists($conf_file))
+if(file_exists('../conf/config.php'))
 {
-    include $conf_file;
+    header('Location: ../index.php');
 }
+include (__SITE_PATH . '/config.php');
 
- /*** create the database registry object ***/
- $registry->config = $config;
- $registry->lmutil = $lmutil;
- $registry->dbinfo = $db;
- $registry->db = DB::getInstance($registry);
- $registry->licengine = LicEngine::getInstance($registry);
+$registry->config = $config;
 ?>

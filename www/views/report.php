@@ -27,22 +27,31 @@ if($launch){
     $url = $config['base_url'] . 'report/';
     ?>
 <h1>1. Choose the Feature</h1>
-<form name="report" action="<?php echo $url?>" method="post">
-    <select name="id">
-    <?php
-    foreach ($features as $feature) {
-        if($feature['id']==$featureid){
-            ?>
-        <option selected value="<?php echo $feature['id']?>"><?php echo $feature['name']?></option>
+<?php
+    if(empty($features))
+    {
+        ?>
+        <p>No Features yet, start monitoring first.</p>
+        <p>Back to <a href="<?php echo $config['base_url']?>">Homepage</a></p>
         <?php
-        }else{?>
-        <option value="<?php echo $feature['id']?>"><?php echo $feature['name']?></option>
-    <?php
-        }
-    }
+    }else{?>
+        <form name="report" action="<?php echo $url?>" method="post">
+            <select name="id">
+            <?php
+            foreach ($features as $feature) {
+                if($feature['id']==$featureid){
+                    ?>
+                <option selected value="<?php echo $feature['id']?>"><?php echo $feature['name']?></option>
+                <?php
+                }else{?>
+                <option value="<?php echo $feature['id']?>"><?php echo $feature['name']?></option>
+                <?php
+                }
+            }
     ?>
     </select>
     <input type="submit" value="Next"><br />
     </form>
 <?php
+    }
 }?>

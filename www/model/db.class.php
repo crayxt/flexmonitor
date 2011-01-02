@@ -31,16 +31,16 @@ class DB {
 
     // private constructor
     private function __construct($registry) {
-        $this->dbHost = $registry->dbinfo['hostname'];
-        $this->user = $registry->dbinfo['username'];
-        $this->pass = $registry->dbinfo['password'];
-        $this->dbName = $registry->dbinfo['database'];
-        $this->con = mysql_connect($this->dbHost, $this->user, $this->pass)
-        or die ("Could not connect to db: " . mysql_error());
-        //SET NAMES sets client, results, and connection character sets
-        mysql_query("SET NAMES 'utf8'");
-        mysql_select_db($this->dbName, $this->con)
-        or die ("Could not select db: " . mysql_error());
+            $this->dbHost = $registry->dbinfo['hostname'];
+            $this->user = $registry->dbinfo['username'];
+            $this->pass = $registry->dbinfo['password'];
+            $this->dbName = $registry->dbinfo['database'];
+            $this->con = mysql_connect($this->dbHost, $this->user, $this->pass)
+            or die ("Could not connect to db: " . mysql_error());
+            //SET NAMES sets client, results, and connection character sets
+            mysql_query("SET NAMES 'utf8'");
+            mysql_select_db($this->dbName, $this->con)
+            or die ("Could not select db: " . mysql_error());
     }
 
     public function get_site_id_by_name ($name) {
