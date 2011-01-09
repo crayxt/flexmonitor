@@ -307,7 +307,6 @@ class LicEngine {
                         'date_expire' => 'permanent',
                         'feature_array' => $feature_array);
                 }
-                $flexlminfo['lic_array'][$feature]['num_licenses'] += $ar[5];
                 $expiration_date = $ar[4];
                 if ( $expiration_date )  {
                     $expiration_date = strtolower($expiration_date);
@@ -327,6 +326,9 @@ class LicEngine {
                 }
                 if ( $days_to_expiration < 0 ){
                     $days_to_expiration = 'expired';
+                }
+                if((($days_to_expiration >0) || ($days_to_expiration=='permanent')) && $days_to_expiration != 'expired'){
+                    $flexlminfo['lic_array'][$feature]['num_licenses'] += $ar[5];
                 }
                 $flexlminfo['lic_array'][$feature]['days_expire'] = $days_to_expiration;
                 $flexlminfo['lic_array'][$feature]['date_expire'] = $expiration_date;
