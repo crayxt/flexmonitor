@@ -5,10 +5,7 @@ class licensesController extends baseController {
         $log = fopen(__SITE_PATH . $this->registry->config['logfile'],'w');
         fwrite($log,date('r') . ": Start\r\n");
         fclose($log);
-        $recordset = $this->registry->db->get_licenses();
-        while($license = mysql_fetch_array($recordset)){
-            $lic_array[] = $license;
-        }
+        $lic_array = $this->registry->db->get_licenses();
         foreach($lic_array as $license)
         {
             $this->insert($license);
@@ -79,11 +76,7 @@ class licensesController extends baseController {
         $licavail = array();
         $xavaildata = array();
         $yavaildata = array();
-        $recordset = $this->registry->db->get_licenses_available($period,$featureid,date('Y-m-d'),$licid);
-        while($avail_licenses = mysql_fetch_array($recordset)){
-            $licdate = strtotime($avail_licenses['date']);
-            $licavail[$licdate]= $avail_licenses['num_licenses'];
-        }
+        $licavail = $this->registry->db->get_licenses_available($period,$featureid,date('Y-m-d'),$licid);
         foreach ($licavail as $xvalue => $yvalue) {
             $xavaildata[] = $xvalue;
             $yavaildata[]  = $yvalue;
@@ -93,15 +86,10 @@ class licensesController extends baseController {
             $xavaildata[0] = time();
             $yavaildata[0] = 0;
         }
-
         $licused = array();
         $xdata = array();
         $ydata = array();
-        $recordset = $this->registry->db->get_licenses_usage($period,$featureid,date('Y-m-d'),$licid);
-        while($used_licenses = mysql_fetch_array($recordset)){
-            $licdate = strtotime($used_licenses['date'] . '' . $used_licenses['time']);
-            $licused[$licdate]= $used_licenses['users'];
-        }
+        $licused = $this->registry->db->get_licenses_usage($period,$featureid,date('Y-m-d'),$licid);
         foreach ($licused as $xvalue => $yvalue) {
             $xdata[] = $xvalue;
             $ydata[]  = $yvalue;
@@ -202,16 +190,16 @@ class licensesController extends baseController {
         header("Content-Disposition: attachment; filename=\"$filename\"");
         header("Content-Type: application/vnd.ms-excel");
         $flag = false;
-        $result = $this->registry->db->get_export_data($featureid,$licenses);
-        while($row = mysql_fetch_assoc($result))
-            {
+        $export_data = $this->registry->db->get_export_data($featureid,$licenses);
+        foreach($export_data as $export_line)
+        {
             if(!$flag) { # display field/column names as first row
-                echo implode("\t", array_keys($row)) . "\n";
+                echo implode("\t", array_keys($export_line)) . "\n";
                 $flag = true;
             }
-            array_walk($row, array($this,'cleanData'));
-            echo implode("\t", array_values($row)) . "\n";
-            }
+            array_walk($export_line, array($this,'cleanData'));
+            echo implode("\t", array_values($export_line)) . "\n";
+        }
         exit;
     }
 }

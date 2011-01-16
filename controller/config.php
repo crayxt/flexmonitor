@@ -10,12 +10,7 @@ class configController extends baseController {
     {
         if(isset($args[0]))
         {
-            $result = array();
-            $recordset = $this->registry->db->get_licenses_by_site_id($args[0]);
-            While($row=mysql_fetch_array($recordset)){
-                $result[] = $row;
-            }
-            $this->registry->template->result = $result;
+            $this->registry->template->result = $this->registry->db->get_licenses_by_site_id($args[0]);
             $this->registry->template->sitename = $this->registry->db->get_site_name_by_id($args[0]);
             $this->registry->template->siteid = $args[0];
             $this->registry->template->show('config_display');
@@ -37,13 +32,10 @@ class configController extends baseController {
                 }
             }
 
-            $recordset = $this->registry->db->get_types();
-                while($row = mysql_fetch_array($recordset)){
-                    $types[$row[0]] = $row[1];
-                }
+            $types = $this->registry->db->get_types();
             if(isset($args[1]))
             {
-                $license = mysql_fetch_array($this->registry->db->get_license_by_id($args[1]));
+                $license = $this->registry->db->get_license_by_id($args[1]);
             }else{
                 $license = array("id" => "", "hostname"=>"","port"=>"","name" => "","type" => "");
             }

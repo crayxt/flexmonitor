@@ -9,13 +9,13 @@ class monitorController extends baseController {
     public function display($args)
     {
         $licenses = array();
-        $recordset = $this->registry->db->get_features_by_siteid($args[0]);
-        if (mysql_num_rows($recordset) > 0)
+        $tmpfeat = $this->registry->db->get_features_by_siteid($args[0]);
+        if (!empty($tmpfeat))
         {
             $tmplic = false;
             $lastlic = FALSE;
             $features = array();
-            while ($row = mysql_fetch_array($recordset)) {
+            foreach($tmpfeat as $row) {
                 $tmplic = $row[0];
                 $tmpprod = $row[1];
                 if(($tmplic!=$lastlic) && ($lastlic)){
@@ -37,7 +37,6 @@ class monitorController extends baseController {
                 );
         }
         $sitename = $this->registry->db->get_site_name_by_id($args[0]);
-
         $this->registry->template->licenses = $licenses;
         $this->registry->template->siteid = $args[0];
         $this->registry->template->sitename = $sitename;

@@ -9,20 +9,12 @@ class reportController extends baseController {
         $launch = false;
         if ($_SERVER["REQUEST_METHOD"] == "POST")
         {
-            $result = $this->registry->db->get_sites_by_featureid($_POST['id']);
-            while($row = mysql_fetch_array($result))
-            {
-                $sites[] = $row;
-            }
+            $sites = $this->registry->db->get_sites_by_featureid($_POST['id']);
             $featureid = $_POST['id'];
             $featurename = $this->registry->db->get_feature_name_byid($featureid);
             $launch = true;
         }else {
-        $result = $this->registry->db->get_features();
-        while($row = mysql_fetch_array($result))
-        {
-            $features[] = $row;
-        }
+            $features = $this->registry->db->get_features();
         }
         /*** load the report template ***/
         $this->registry->template->launch = $launch;
@@ -42,11 +34,7 @@ class reportController extends baseController {
         {
             $featureid = $_POST['id'];
             $sites = implode(',',$_POST['sites']);
-            $result = $this->registry->db->get_licid_by_sites_for_featureid($featureid,$sites);
-            while($row = mysql_fetch_array($result))
-            {
-                $tmplic[] = $row['licid'];
-            }
+            $tmplic = $this->registry->db->get_licid_by_sites_for_featureid($featureid,$sites);
             foreach($tmplic as $licid){
                 $sitenames[$licid] = $this->registry->db->get_sitename_by_licid($licid);
             }

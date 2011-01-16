@@ -9,9 +9,9 @@ class realtimeController extends baseController {
     public function display($args)
     {
         $licenses = array();
-        $recordset = $this->registry->db->get_licenses_by_site_id($args[0]);
-        while ($row = mysql_fetch_assoc($recordset)) {
-            $licinfo = $this->registry->licengine->loadlicenseinfo($row);
+        $tmplic = $this->registry->db->get_licenses_by_site_id($args[0]);
+        foreach($tmplic as $license){
+            $licinfo = $this->registry->licengine->loadlicenseinfo($license);
             $licenses[] = $licinfo;
         }
         $sitename = $this->registry->db->get_site_name_by_id($args[0]);
@@ -23,7 +23,7 @@ class realtimeController extends baseController {
     }
     public function details($args)
     {
-        $license = mysql_fetch_array($this->registry->db->get_license_by_id($args[1]));
+        $license = $this->registry->db->get_license_by_id($args[1]);
         $this->registry->licengine->getfile($license);
         $licinfo = $this->registry->licengine->loadlicenseinfo($license);
         $this->registry->template->licinfo = $licinfo;
@@ -33,7 +33,7 @@ class realtimeController extends baseController {
     }
     public function expire($args)
     {
-        $license = mysql_fetch_array($this->registry->db->get_license_by_id($args[1]));
+        $license = $this->registry->db->get_license_by_id($args[1]);
         $licinfo = $this->registry->licengine->loadlicenseinfo($license);
         $this->registry->template->licinfo = $licinfo;
         $this->registry->template->siteid = $args[0];

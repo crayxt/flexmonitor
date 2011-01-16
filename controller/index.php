@@ -2,13 +2,7 @@
 class indexController extends baseController {
 
     public function index() {
-            $result = array();
-            $recordset = $this->registry->db->get_sites();
-            While($row=mysql_fetch_array($recordset)){
-                $result[$row[0]] = $row[1];
-            }
-            $this->registry->template->result = $result;
-        
+            $this->registry->template->result = $this->registry->db->get_sites();
             /*** load the index template ***/
             $this->registry->template->show('index');
     }
