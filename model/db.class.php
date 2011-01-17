@@ -43,14 +43,93 @@ class DB {
             or die ("Could not select db: " . mysql_error());
     }
 
-    public function get_site_id_by_name ($name) {
+    public function insert_license($server,$port,$name,$siteid,$typeid){
+        $server = mysql_real_escape_string($server);
+        $serverid = $this->get_server_id_by_name($server);
+        if(!$serverid){
+            $this->insert_server($server);
+            $serverid = mysql_insert_id();
+        }
+        $port = mysql_real_escape_string($port);
+        $portid = $this->get_port_id_by_name($port);
+        if(!$portid){
+            $this->insert_port($port);
+            $portid = mysql_insert_id();
+        }
         $name = mysql_real_escape_string($name);
-        $result = mysql_query("SELECT id FROM sites WHERE name = '"
-            . $name . "'");
-        if (mysql_num_rows($result) > 0)
-        return mysql_result($result, 0);
-        else
-        return null;
+        $productid = $this->get_product_id_by_name($name);
+        if(!$productid){
+            $this->insert_product($name);
+            $productid = mysql_insert_id();
+        }
+
+        $sql = "INSERT INTO licenses (serverid, portid, productid, siteid, typeid)" .
+                           " VALUES (" . $serverid . ", " . $portid . ", " . $productid . ", " . $siteid . "," . $typeid . ")";
+        return mysql_query($sql);
+    }
+
+    public function update_site($siteid,$name) {
+        return mysql_query("UPDATE sites SET name = '" . $name . "' where id = " . $siteid);
+    }
+
+    public function update_license($licid,$server,$port,$name,$typeid){
+        $server = mysql_real_escape_string($server);
+        $serverid = $this->get_server_id_by_name($server);
+        if(!$serverid){
+            mysql_query("INSERT INTO servers (hostname) VALUES ('" . $server. "')");
+            $serverid = mysql_insert_id();
+        }
+        $port = mysql_real_escape_string($port);
+        $portid = $this->get_port_id_by_name($port);
+        if(!$portid){
+            mysql_query("INSERT INTO ports (port) VALUES ('" . $port. "')");
+            $portid = mysql_insert_id();
+        }
+        $name = mysql_real_escape_string($name);
+        $productid = $this->get_product_id_by_name($name);
+        if(!$productid){
+            mysql_query("INSERT INTO products (name) VALUES ('" . $name. "')");
+            $productid = mysql_insert_id();
+        }
+
+        $sql="UPDATE licenses SET serverid='".$serverid."',portid='".$portid."',productid = '" . $productid . "', typeid = " . $typeid . " WHERE id =" . $licid;
+        return mysql_query($sql);
+    }
+
+    public function insert_used_licenses($features_array)
+    {
+        if(!empty($features_array))
+        {
+        $avail_query_string = "INSERT INTO licenses_available (date,featureid,num_licenses,licid) VALUES ";
+        $used_query_string = "INSERT INTO licenses_usage (featureid,date,time,users,licid) VALUES ";
+        foreach($features_array as $feature_array)
+        {
+            $feature = mysql_real_escape_string($feature_array['feature']);
+            $featureid = $this->get_featureid_by_name($feature);
+            if(!$featureid){
+                mysql_query("INSERT INTO features (name) VALUES ('" . $feature. "')");
+                $featureid = mysql_insert_id();
+            }
+            $datas_avail[] = " ('" . date('Y-m-d') . "'," . $featureid . "," . $feature_array['num_licenses'] . "," . $feature_array['licid'] . ")";
+            $datas_used[] = "(".$featureid.",'".date('Y-m-d')."','".date('H:i:s')."',".$feature_array['licenses_used'].",".$feature_array['licid'] .")";
+        }
+        $avail_query_string .= implode(",",$datas_avail);
+        $used_query_string .= implode(",",$datas_used);
+        $avail_query_string .= " ON DUPLICATE KEY UPDATE num_licenses=VALUES(num_licenses)";
+        if(mysql_query($avail_query_string))
+        {
+            if(mysql_query($used_query_string))
+            {
+                return 0;
+            }else return 1;
+        }else return 1;
+        }else return 1;
+        return 0;
+    }
+
+    public function create_site ($name){
+        $name = mysql_real_escape_string($name);
+        mysql_query("INSERT INTO sites (name) VALUES ('" . $name . "')");
     }
 
     public function get_licid_by_sites_for_featureid($featureid,$sites){
@@ -121,60 +200,13 @@ class DB {
         return null;
     }
 
-    public function get_licenses_by_product($name) {
-        $name = mysql_real_escape_string($name);
-        return mysql_query("select licenses.id,hostname,port,products.name,type,sites.Name from licenses,ports,products,servers,types,sites where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid=products.id and licenses.typeid=types.id and licenses.siteid = sites.id and products.name=" . $name . "'");
-    }
-
-    public function get_licenses_by_server_site($server,$port,$site) {
-        $server = mysql_real_escape_string($server);
-        $port = mysql_real_escape_string($port);
-        $site = mysql_real_escape_string($site);
-        $result =  mysql_query("select licenses.id from licenses,ports,servers,sites where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.siteid = sites.id and servers.hostname = '" . $server . "' and ports.port = '" . $port . "' and sites.name = '" . $site . "'");
-        if (mysql_num_rows($result) > 0)
-            return mysql_result($result, 0);
-        else
-            return null;
-    }
-
-    public function get_server_id_by_name ($name) {
-        $name = mysql_real_escape_string($name);
-        $result = mysql_query("SELECT id FROM servers WHERE hostname = '"
-            . $name . "'");
-        if (mysql_num_rows($result) > 0)
-        return mysql_result($result, 0);
-        else
-        return null;
-    }
-    
-    public function get_port_id_by_name ($name) {
-        $name = mysql_real_escape_string($name);
-        $result = mysql_query("SELECT id FROM ports WHERE port = '"
-            . $name . "'");
-        if (mysql_num_rows($result) > 0)
-        return mysql_result($result, 0);
-        else
-        return null;
-    }
-
-    public function get_product_id_by_name ($name) {
-        $name = mysql_real_escape_string($name);
-        $result = mysql_query("SELECT id FROM products WHERE name = '"
-            . $name . "'");
-        if (mysql_num_rows($result) > 0)
-        return mysql_result($result, 0);
-        else
-        return null;
-    }
-
     public function get_site_name_by_id ($id) {
-    $result = mysql_query("SELECT name FROM sites WHERE id = " . $id);
-    if (mysql_num_rows($result) > 0)
-    return mysql_result($result, 0);
-    else
-    return null;
+        $result = mysql_query("SELECT name FROM sites WHERE id = " . $id);
+        if (mysql_num_rows($result) > 0)
+        return mysql_result($result, 0);
+        else
+        return null;
     }
-
 
     public function get_licenses_by_site_id($id) {
         $result = array();
@@ -196,6 +228,7 @@ class DB {
     public function get_license_by_id ($id) {
        return mysql_fetch_array(mysql_query("select licenses.id,hostname,port,name,type from licenses,servers,ports,products,types where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid = products.id and licenses.typeid = types.id and licenses.id='" . $id . "'"));
     }
+
     public function get_sites() {
         $result = array();
         $recordset = mysql_query("select * from sites order by name");
@@ -223,10 +256,6 @@ class DB {
         return $types;
     }
 
-    public function get_features_by_licid($id) {
-        return mysql_query("select featureid,features.name from license_features join features on features.id=license_features.featureid where licid=" . $id . " order by features.name asc;");
-    }
-
     public function get_features()
     {
         $features = array();
@@ -239,19 +268,12 @@ class DB {
     }
     public function get_features_by_siteid($id) {
         $recordset = mysql_query("SELECT distinct(licid),products.name AS product,featureid,features.name AS feature FROM licenses_available JOIN features ON features.id=licenses_available.featureid JOIN licenses ON licenses_available.licid=licenses.id JOIN products ON licenses.productid = products.id WHERE licenses.siteid=" . $id . " ORDER BY products.name,features.name asc;");
+        $features = array();
         while ($row = mysql_fetch_array($recordset))
         {
             $features[] = $row;
         }
         return $features;
-    }
-
-    public function get_featureid_by_name($name) {
-        $result = mysql_query("SELECT id FROM features WHERE name = '" . $name . "'");
-        if (mysql_num_rows($result) > 0)
-            return mysql_result($result, 0);
-        else
-            return null;
     }
 
     public function get_feature_name_byid($id) {
@@ -343,117 +365,100 @@ class DB {
         return mysql_query("DELETE FROM sites WHERE id = " . $siteid);
         
     }
-    public function insert_server($server) {
+
+    private function get_featureid_by_name($name) {
+        $result = mysql_query("SELECT id FROM features WHERE name = '" . $name . "'");
+        if (mysql_num_rows($result) > 0)
+            return mysql_result($result, 0);
+        else
+            return null;
+    }
+
+    private function get_server_id_by_name ($name) {
+        $name = mysql_real_escape_string($name);
+        $result = mysql_query("SELECT id FROM servers WHERE hostname = '"
+            . $name . "'");
+        if (mysql_num_rows($result) > 0)
+        return mysql_result($result, 0);
+        else
+        return null;
+    }
+
+    private function get_port_id_by_name ($name) {
+        $name = mysql_real_escape_string($name);
+        $result = mysql_query("SELECT id FROM ports WHERE port = '"
+            . $name . "'");
+        if (mysql_num_rows($result) > 0)
+        return mysql_result($result, 0);
+        else
+        return null;
+    }
+
+    private function get_product_id_by_name ($name) {
+        $name = mysql_real_escape_string($name);
+        $result = mysql_query("SELECT id FROM products WHERE name = '"
+            . $name . "'");
+        if (mysql_num_rows($result) > 0)
+        return mysql_result($result, 0);
+        else
+        return null;
+    }
+
+    private function insert_server($server) {
         $server = mysql_real_escape_string($server);
         mysql_query("INSERT INTO servers (hostname) VALUES ('" . $server. "')");
     }
 
-    public function insert_port($port) {
+    private function insert_port($port) {
         $port = mysql_real_escape_string($port);
         mysql_query("INSERT INTO ports (port) VALUES ('" . $port. "')");
     }
 
-    public function insert_product($name) {
+    private function insert_product($name) {
         $name = mysql_real_escape_string($name);
         mysql_query("INSERT INTO products (name) VALUES ('" . $name. "')");
     }
-    public function insert_license($server,$port,$name,$siteid,$typeid){
-        $server = mysql_real_escape_string($server);
-        $serverid = $this->get_server_id_by_name($server);
-        if(!$serverid){
-            $this->insert_server($server);
-            $serverid = mysql_insert_id();
-        }
-        $port = mysql_real_escape_string($port);
-        $portid = $this->get_port_id_by_name($port);
-        if(!$portid){
-            $this->insert_port($port);
-            $portid = mysql_insert_id();
-        }
-        $name = mysql_real_escape_string($name);
-        $productid = $this->get_product_id_by_name($name);
-        if(!$productid){
-            $this->insert_product($name);
-            $productid = mysql_insert_id();
-        }
 
-        $sql = "INSERT INTO licenses (serverid, portid, productid, siteid, typeid)" .
-                           " VALUES (" . $serverid . ", " . $portid . ", " . $productid . ", " . $siteid . "," . $typeid . ")";
-        return mysql_query($sql);
-    }
+    /*public function get_features_by_licid($id) {
+        return mysql_query("select featureid,features.name from license_features join features on features.id=license_features.featureid where licid=" . $id . " order by features.name asc;");
+    }*/
 
-    public function update_site($siteid,$name) {
-        return mysql_query("UPDATE sites SET name = '" . $name . "' where id = " . $siteid);
-    }
-
-    public function update_license($licid,$server,$port,$name,$typeid){
-        $server = mysql_real_escape_string($server);
-        $serverid = $this->get_server_id_by_name($server);
-        if(!$serverid){
-            mysql_query("INSERT INTO servers (hostname) VALUES ('" . $server. "')");
-            $serverid = mysql_insert_id();
-        }
-        $port = mysql_real_escape_string($port);
-        $portid = $this->get_port_id_by_name($port);
-        if(!$portid){
-            mysql_query("INSERT INTO ports (port) VALUES ('" . $port. "')");
-            $portid = mysql_insert_id();
-        }
-        $name = mysql_real_escape_string($name);
-        $productid = $this->get_product_id_by_name($name);
-        if(!$productid){
-            mysql_query("INSERT INTO products (name) VALUES ('" . $name. "')");
-            $productid = mysql_insert_id();
-        }
-        
-        $sql="UPDATE licenses SET serverid='".$serverid."',portid='".$portid."',productid = '" . $productid . "', typeid = " . $typeid . " WHERE id =" . $licid;
-        return mysql_query($sql);
-    }
-
-    public function insert_used_licenses($features_array)
-    {
-        if(!empty($features_array))
-        {
-        $avail_query_string = "INSERT INTO licenses_available (date,featureid,num_licenses,licid) VALUES ";
-        $used_query_string = "INSERT INTO licenses_usage (featureid,date,time,users,licid) VALUES ";
-        foreach($features_array as $feature_array)
-        {
-            $feature = mysql_real_escape_string($feature_array['feature']);
-            $featureid = $this->get_featureid_by_name($feature);
-            if(!$featureid){
-                mysql_query("INSERT INTO features (name) VALUES ('" . $feature. "')");
-                $featureid = mysql_insert_id();
-            }
-            $datas_avail[] = " ('" . date('Y-m-d') . "'," . $featureid . "," . $feature_array['num_licenses'] . "," . $feature_array['licid'] . ")";
-            $datas_used[] = "(".$featureid.",'".date('Y-m-d')."','".date('H:i:s')."',".$feature_array['licenses_used'].",".$feature_array['licid'] .")";
-        }
-        $avail_query_string .= implode(",",$datas_avail);
-        $used_query_string .= implode(",",$datas_used);
-        $avail_query_string .= " ON DUPLICATE KEY UPDATE num_licenses=VALUES(num_licenses)";
-        if(mysql_query($avail_query_string))
-        {
-            if(mysql_query($used_query_string))
-            {
-                return 0;
-            }else return 1;
-        }else return 1;
-        }else return 1;
-        return 0;
-    }
-
-    public function create_site ($name){
-        $name = mysql_real_escape_string($name);
-        mysql_query("INSERT INTO sites (name) VALUES ('" . $name . "')");
-    }
-
-
-    public function format_date_for_sql($date){
+    /*public function format_date_for_sql($date){
         if ($date == "")
             return "NULL";
         else {
             $dateParts = date_parse($date);
             return $dateParts["year"]*10000 + $dateParts["month"]*100 + $dateParts["day"];
         }
+    }*/
+
+        /*public function get_site_id_by_name ($name) {
+        $name = mysql_real_escape_string($name);
+        $result = mysql_query("SELECT id FROM sites WHERE name = '"
+            . $name . "'");
+        if (mysql_num_rows($result) > 0)
+        return mysql_result($result, 0);
+        else
+        return null;
+    }*/
+
+    /***
+    public function get_licenses_by_product($name) {
+        $name = mysql_real_escape_string($name);
+        return mysql_query("select licenses.id,hostname,port,products.name,type,sites.Name from licenses,ports,products,servers,types,sites where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.productid=products.id and licenses.typeid=types.id and licenses.siteid = sites.id and products.name=" . $name . "'");
     }
+    ***/
+
+    /*public function get_licenses_by_server_site($server,$port,$site) {
+        $server = mysql_real_escape_string($server);
+        $port = mysql_real_escape_string($port);
+        $site = mysql_real_escape_string($site);
+        $result =  mysql_query("select licenses.id from licenses,ports,servers,sites where licenses.serverid=servers.id and licenses.portid=ports.id and licenses.siteid = sites.id and servers.hostname = '" . $server . "' and ports.port = '" . $port . "' and sites.name = '" . $site . "'");
+        if (mysql_num_rows($result) > 0)
+            return mysql_result($result, 0);
+        else
+            return null;
+    }*/
+
   }
 ?>

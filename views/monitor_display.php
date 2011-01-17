@@ -1,4 +1,4 @@
-<script>
+<script type="text/javascript">
     function Appear(name){
         if(document.getElementById(name).style.display == ''){
             document.getElementById(name).style.display = 'none';
@@ -6,7 +6,6 @@
             document.getElementById(name).style.display = '';
         }
     }
-
 </script>
 <h1> <?php echo $sitename ?> License monitoring</h1>
 <p>Following links will show the license usage for different tools. Data is being collected every 15 minutes.</p>
